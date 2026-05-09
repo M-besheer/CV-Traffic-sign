@@ -4,108 +4,53 @@ import matplotlib.pyplot as plt
 
 
 def isolate_red_signs(image_path):
-    """Converts image to HSV, applies blur, and extracts red objects with robust bounds."""
-
-    # 1. Load the image and convert for Matplotlib viewing
+    """Converts image to HSV and extracts RED and BLUE objects."""
     img_bgr = cv2.imread(image_path)
     if img_bgr is None:
-        print("Image not found!")
-        return None, None
+        return None, None  # Fails gracefully if image is missing
+
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-
-    # Apply a slight Gaussian Blur to smooth out pixelation and noise
     blurred_bgr = cv2.GaussianBlur(img_bgr, (5, 5), 0)
-
-    # 2. Convert blurred image from BGR to HSV
     img_hsv = cv2.cvtColor(blurred_bgr, cv2.COLOR_BGR2HSV)
 
-    # 3. Define the HSV range for the color RED (Widened for dark/noisy images)
+    # 1. RED Masks
     lower_red1 = np.array([0, 50, 50])
     upper_red1 = np.array([10, 255, 255])
-
     lower_red2 = np.array([160, 50, 50])
     upper_red2 = np.array([180, 255, 255])
+    mask_red = cv2.inRange(img_hsv, lower_red1, upper_red1) + cv2.inRange(img_hsv, lower_red2, upper_red2)
 
-    # 4. Create and combine the binary masks
-    mask1 = cv2.inRange(img_hsv, lower_red1, upper_red1)
-    mask2 = cv2.inRange(img_hsv, lower_red2, upper_red2)
-    red_mask = mask1 + mask2
+    # 2. BLUE Mask (Catches mandatory signs like "Turn Right")
+    lower_blue = np.array([100, 50, 50])
+    upper_blue = np.array([140, 255, 255])
+    mask_blue = cv2.inRange(img_hsv, lower_blue, upper_blue)
 
-    # 5. Apply the mask back to the original image
-    segmented_result = cv2.bitwise_and(img_rgb, img_rgb, mask=red_mask)
+    # Combine Masks!
+    combined_mask = mask_red + mask_blue
 
-    # 6. Display the process side-by-side
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
-    axes[0].imshow(img_rgb)
-    axes[0].set_title("1. Original Image")
-    axes[0].axis('off')
-
-    axes[1].imshow(red_mask, cmap='gray')
-    axes[1].set_title("2. Robust Binary Mask")
-    axes[1].axis('off')
-
-    axes[2].imshow(segmented_result)
-    axes[2].set_title("3. Segmented Result")
-    axes[2].axis('off')
-
-    plt.tight_layout()
-    plt.show()
-
-    return red_mask, img_rgb
+    return combined_mask, img_rgb
 
 
 def clean_mask_and_get_bounding_box(original_img_rgb, binary_mask):
-    """Cleans the binary mask and finds the bounding box for small GTSRB images."""
-
-    if binary_mask is None:
+    """Cleans mask and finds the bounding box, forgiving tiny images."""
+    if binary_mask is None or original_img_rgb is None:
         return None
 
-    # Reduced kernel to 3x3 so we don't crush tiny 32x32 pixel images
     kernel = np.ones((3, 3), np.uint8)
-
-    # Apply Morphological Closing
     clean_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
-
-    # Find Contours
     contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    output_img = original_img_rgb.copy()
-
     if contours:
-        # Assuming the largest red blob in the image is our sign
+        # Just grab the absolute largest color blob, ignoring area limits
         largest_contour = max(contours, key=cv2.contourArea)
 
-        # Dropped area threshold from 500 to 50 to catch small GTSRB signs
-        if cv2.contourArea(largest_contour) > 50:
+        # Lowered the strict area requirement from 50 to 10 for tiny GTSRB images
+        if cv2.contourArea(largest_contour) > 10:
             x, y, w, h = cv2.boundingRect(largest_contour)
-
-            # Draw a bright green rectangle
-            cv2.rectangle(output_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
             # Crop out the sign
             cropped_sign = original_img_rgb[y:y + h, x:x + w]
-
-            # Display the results
-            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-            axes[0].imshow(clean_mask, cmap='gray')
-            axes[0].set_title("1. Cleaned Mask")
-            axes[0].axis('off')
-
-            axes[1].imshow(output_img)
-            axes[1].set_title("2. Bounding Box Detected")
-            axes[1].axis('off')
-
-            axes[2].imshow(cropped_sign)
-            axes[2].set_title("3. Cropped ROI")
-            axes[2].axis('off')
-
-            plt.tight_layout()
-            plt.show()
-
             return cropped_sign
 
-    print("No valid contours found even with lowered thresholds!")
     return None
 
 
@@ -200,12 +145,28 @@ def match_features(cropped_rgb, kp1, des1, template_path):
 
 
 if __name__ == "__main__":
-    sample_path = "image.png"  # Replace with your actual image path
-    # Run the pipeline
+    # 1. Point this to the 120 km/h sign you just uploaded
+    sample_path = "image.png"
+
+    # Run the segmentation pipeline
     mask, img_rgb = isolate_red_signs(sample_path)
-    cropped = clean_mask_and_get_bounding_box(img_rgb, mask)
-    kp, des = extract_features(cropped)
-    # Match against template
-    matches = match_features(cropped, kp, des, sample_path)
-    if matches:
-        print(f"Total successful matches found: {len(matches)}")
+    cropped_rgb = clean_mask_and_get_bounding_box(img_rgb, mask)
+
+    if cropped_rgb is not None:
+        # --- NEW CODE: SAVE THE CROPPED IMAGE ---
+        # Convert RGB back to BGR so OpenCV saves the colors correctly
+        cropped_bgr = cv2.cvtColor(cropped_rgb, cv2.COLOR_RGB2BGR)
+
+        # Save it as test_image.png for your Ensemble script to read
+        output_filename = "test_image.png"
+        cv2.imwrite(output_filename, cropped_bgr)
+        print(f"✅ Successfully saved cropped sign to: {output_filename}")
+        # -----------------------------------------
+
+        # Continue with your SIFT testing
+        kp, des = extract_features(cropped_rgb)
+        matches = match_features(cropped_rgb, kp, des, sample_path)
+        if matches:
+            print(f"Total successful matches found: {len(matches)}")
+    else:
+        print("❌ Failed to detect and crop the sign.")
