@@ -48,7 +48,7 @@ def clean_mask_and_get_bounding_box(original_img_rgb, binary_mask):
     if contours:
         # Just grab the absolute largest color blob, ignoring area limits
         largest_contour = max(contours, key=cv2.contourArea)
-        print("sagmeen sah")
+        
 
         # Lowered the strict area requirement from 50 to 10 for tiny GTSRB images
         if cv2.contourArea(largest_contour) > 10:
@@ -56,5 +56,5 @@ def clean_mask_and_get_bounding_box(original_img_rgb, binary_mask):
             # Crop out the sign
             cropped_sign = original_img_rgb[y:y + h, x:x + w]
             return cropped_sign
-    print("aaaaaaaa")
+    
     return None
