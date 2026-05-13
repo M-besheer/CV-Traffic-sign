@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from Segmentation import isolate_red_signs, clean_mask_and_get_bounding_box
+from Segmentation import isolate_signs, clean_mask_and_get_bounding_box
 
 def preprocess_image(image_path, target_size=(64, 64)):
     """
@@ -8,7 +8,7 @@ def preprocess_image(image_path, target_size=(64, 64)):
     Falls back to the full image if segmentation fails.
     """
     # 1. Segmentation
-    combined_mask, img_rgb = isolate_red_signs(image_path)
+    combined_mask, img_rgb = isolate_signs(image_path)
     
     if img_rgb is None:
         return None # Image not found or couldn't be read

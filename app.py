@@ -6,7 +6,7 @@ import os
 
 from feature_extraction import extract_sift, extract_lbph
 from matcher import get_good_matches, get_lbph_score, normalize_scores
-from Segmentation import isolate_red_signs, clean_mask_and_get_bounding_box
+from Segmentation import isolate_signs, clean_mask_and_get_bounding_box
 
 # ----------- CACHED SETUP -----------
 @st.cache_resource
@@ -26,7 +26,7 @@ def load_training_features():
             img_path = os.path.join(class_path, img_name)
             
             # Inline preprocessing for cache
-            combined_mask, img_rgb = isolate_red_signs(img_path)
+            combined_mask, img_rgb = isolate_signs(img_path)
             if img_rgb is None: continue
             cropped_sign = clean_mask_and_get_bounding_box(img_rgb, combined_mask)
             if cropped_sign is None: cropped_sign = img_rgb

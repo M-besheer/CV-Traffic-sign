@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def isolate_red_signs(image_path):
+def isolate_signs(image_path):
     """Converts image to HSV and extracts RED, BLUE, and YELLOW objects."""
     img_bgr = cv2.imread(image_path)
     if img_bgr is None:
