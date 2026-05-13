@@ -230,7 +230,6 @@ if uploaded_file is not None:
 # --- METRICS SECTION ---
 st.markdown("---")
 st.header("📊 Model Metrics")
-st.write("Place your metric images (e.g., confusion matrix, accuracy plots) in a folder named `metrics/` in your project directory. They will appear here!")
 
 metrics_dir = "metrics"
 if os.path.exists(metrics_dir) and os.path.isdir(metrics_dir):
