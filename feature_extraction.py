@@ -33,7 +33,7 @@ def preprocess_image(image_path, target_size=(64, 64)):
 # Initialize feature extractors once to save time and reuse the same instance
 try:
     _surf_extractor = cv2.xfeatures2d.SURF_create()
-except AttributeError:
+except (AttributeError, cv2.error):
     _surf_extractor = cv2.SIFT_create()
 
 _orb_extractor = cv2.ORB_create()
