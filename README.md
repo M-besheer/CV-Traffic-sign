@@ -59,13 +59,13 @@ flowchart TB
   %% Row 4 (Left to Right)
   subgraph R4 [Classification]
     direction LR
-    M[LBP Histogram] --> N[Chi-Square Distance] --> O[Normalize Scores] --> P[Select Best Class]
+   O[Normalize Scores] --> P[Select Best Class]
   end
 
   %% Connecting the rows to create the snake effect
   D --> E
   H --> L
-  I --> M
+  I --> O
   P --> Q[Prediction]
   
   %% Optional styling to make it cleaner
