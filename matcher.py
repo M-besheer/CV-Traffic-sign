@@ -50,7 +50,7 @@ def save_detailed_evaluation(y_true, y_pred):
     """
     Generates and saves a visual Confusion Matrix and a Performance Metrics table.
     """
-    
+
     # Get unique class names
     labels = sorted(list(set(y_true)))
     
@@ -68,7 +68,7 @@ def save_detailed_evaluation(y_true, y_pred):
     plt.close()
 
     # 2. PREPARE DATA
-    report = classification_report(y_true, y_pred, output_dict=True)
+    report = classification_report(y_true, y_pred, output_dict=True , zero_division=0)
     df_full = pd.DataFrame(report).transpose()
     
     # Split the data: Performance Metrics vs Summaries
