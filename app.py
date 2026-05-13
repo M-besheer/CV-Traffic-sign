@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import os
 
-from feature_extraction import extract_surf, extract_lbph
+from feature_extraction import extract_sift, extract_lbph
 from matcher import get_good_matches, get_lbph_score, normalize_scores
 from Segmentation import isolate_red_signs, clean_mask_and_get_bounding_box
 
@@ -35,12 +35,12 @@ def load_training_features():
             clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
             final_img = clahe.apply(gray_sign)
             
-            surf_des = extract_surf(final_img)
+            sift_des = extract_sift(final_img)
             lbph_hist = extract_lbph(final_img)
             
             train_features.append({
                 'class': class_name,
-                'surf': surf_des,
+                'sift': sift_des,
                 'lbph': lbph_hist
             })
     return train_features
@@ -141,23 +141,23 @@ if uploaded_file is not None:
     
     # Features
     st.markdown("---")
-    st.subheader("5. Feature Extraction (SURF & LBPH)")
+    st.subheader("5. Feature Extraction (sift & LBPH)")
     
-    surf_des = extract_surf(final_img)
+    sift_des = extract_sift(final_img)
     lbph_hist = extract_lbph(final_img)
     
     try:
-        _surf_extractor = cv2.xfeatures2d.SURF_create()
+        _sift_extractor = cv2.xfeatures2d.sift_create()
     except (AttributeError, cv2.error):
-        _surf_extractor = cv2.SIFT_create()
+        _sift_extractor = cv2.SIFT_create()
         
-    kp, _ = _surf_extractor.detectAndCompute(final_img, None)
+    kp, _ = _sift_extractor.detectAndCompute(final_img, None)
     img_with_keypoints = cv2.drawKeypoints(final_img, kp, None, (255, 0, 0), 4)
     
     col5, col6 = st.columns(2)
     with col5:
         st.image(img_with_keypoints, width=200)
-        st.write(f"**SURF/SIFT Keypoints found:** {len(kp) if kp else 0}")
+        st.write(f"**sift/SIFT Keypoints found:** {len(kp) if kp else 0}")
         st.info("**Reason:** We identify local scale-invariant 'keypoints' (corners, blobs) across the sign to match against our dataset.")
         
     with col6:
@@ -170,20 +170,20 @@ if uploaded_file is not None:
     st.markdown("---")
     st.subheader("6. Classification (Matching algorithm)")
     
-    if surf_des is None or len(surf_des) == 0:
-        st.error("No SURF features found to match against!")
+    if sift_des is None or len(sift_des) == 0:
+        st.error("No sift features found to match against!")
     elif len(train_features) == 0:
         st.error("Training features didn't load (check if your 'ds/DATA' folder exists).")
     else:
         with st.spinner("Matching against the dataset..."):
-            surf_matcher = cv2.BFMatcher(cv2.NORM_L2)
-            raw_surf = []
+            sift_matcher = cv2.BFMatcher(cv2.NORM_L2)
+            raw_sift = []
             raw_lbph = []
             for tf in train_features:
-                raw_surf.append(get_good_matches(surf_matcher, surf_des, tf['surf']))
+                raw_sift.append(get_good_matches(sift_matcher, sift_des, tf['sift']))
                 raw_lbph.append(get_lbph_score(lbph_hist, tf['lbph']))
                 
-            norm_surf = normalize_scores(raw_surf)
+            norm_sift = normalize_scores(raw_sift)
             norm_lbph = 1.0 - normalize_scores(raw_lbph)
             
             class_confidences = {}
@@ -191,7 +191,7 @@ if uploaded_file is not None:
             
             for i, tf in enumerate(train_features):
                 c = tf['class']
-                conf = norm_surf[i] # 1.0 weight for surf, 0 for lbph as per matcher.py
+                conf = norm_sift[i] # 1.0 weight for sift, 0 for lbph as per matcher.py
                 if c not in class_confidences:
                     class_confidences[c] = 0.0
                     class_counts[c] = 0
@@ -225,7 +225,7 @@ if uploaded_file is not None:
             with result_placeholder.container():
                 st.success(f"## 🎉 Predicted Class: {best_class} ({predicted_name})")
                 
-            st.write("**Reason:** The test image features were compared against all preprocessed training images using K-Nearest Neighbors matching (with Ratio Test) for SURF keypoints and Chi-Square distance for LBPH. After normalization, we averaged the match confidence for each class category to output the highest-scoring class.")
+            st.write("**Reason:** The test image features were compared against all preprocessed training images using K-Nearest Neighbors matching (with Ratio Test) for sift keypoints and Chi-Square distance for LBPH. After normalization, we averaged the match confidence for each class category to output the highest-scoring class.")
 
 # --- METRICS SECTION ---
 st.markdown("---")

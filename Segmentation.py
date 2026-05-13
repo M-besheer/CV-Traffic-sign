@@ -10,7 +10,9 @@ def isolate_red_signs(image_path):
         return None, None  # Fails gracefully if image is missing
 
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    # Smooth to reduce color spikes
     blurred_bgr = cv2.GaussianBlur(img_bgr, (5, 5), 0)
+    # Convert to HSV for better color segmentation
     img_hsv = cv2.cvtColor(blurred_bgr, cv2.COLOR_BGR2HSV)
 
     # 1. RED Masks
@@ -42,7 +44,9 @@ def clean_mask_and_get_bounding_box(original_img_rgb, binary_mask):
         return None
 
     kernel = np.ones((3, 3), np.uint8)
+    # Closing operation to fill small holes in the mask
     clean_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
+    # Find outlines of the detected areas
     contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if contours:

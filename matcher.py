@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from feature_extraction import preprocess_image, extract_surf,  extract_lbph
+from feature_extraction import preprocess_image, extract_sift,  extract_lbph
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -109,7 +109,7 @@ def main():
     train_dir = os.path.join('ds', 'DATA')
     test_dir = os.path.join('ds', 'TEST')
     
-    surf_matcher = cv2.BFMatcher(cv2.NORM_L2)
+    sift_matcher = cv2.BFMatcher(cv2.NORM_L2)
 
     
     print("Precomputing training features... (This might take some time)")
@@ -127,13 +127,13 @@ def main():
             if img is None:
                 continue
                 
-            surf_des = extract_surf(img)
+            sift_des = extract_sift(img)
 
             lbph_hist = extract_lbph(img)
             
             train_features.append({
                 'class': class_name,
-                'surf': surf_des,
+                'sift': sift_des,
                 'lbph': lbph_hist
             })
 
@@ -158,26 +158,26 @@ def main():
                 continue
                 
             # Calculate features for test image
-            test_surf = extract_surf(img)
+            test_sift = extract_sift(img)
             test_lbph = extract_lbph(img)
             
-            raw_surf_scores = []
+            raw_sift_scores = []
             raw_lbph_scores = []
             
             # Compare test image against all training images
             for tf in train_features:
-                surf_score = get_good_matches(surf_matcher, test_surf, tf['surf'])
+                sift_score = get_good_matches(sift_matcher, test_sift, tf['sift'])
                 lbph_score = get_lbph_score(test_lbph, tf['lbph'])
                 
-                raw_surf_scores.append(surf_score)
+                raw_sift_scores.append(sift_score)
                 raw_lbph_scores.append(lbph_score)
                 
             # Min-Max Normalization over all train comparisons for this test image
-            norm_surf = normalize_scores(raw_surf_scores)
+            norm_sift = normalize_scores(raw_sift_scores)
             
             # For Chi-Square distance, a lower value is better.
             # We invert the normalized score so that 1.0 means the best match (lowest distance)
-            # and 0.0 means the worst match, aligning it with SURF
+            # and 0.0 means the worst match, aligning it with sift
             norm_lbph = normalize_scores(raw_lbph_scores)
             norm_lbph = 1.0 - norm_lbph
             
@@ -188,7 +188,7 @@ def main():
             for i, tf in enumerate(train_features):
                 c = tf['class']
                 # Average confidence for this specific train image
-                conf = (1 * norm_surf[i] + 0 * norm_lbph[i])
+                conf = (1 * norm_sift[i] + 0 * norm_lbph[i])
                 
                 if c not in class_confidences:
                     class_confidences[c] = 0.0

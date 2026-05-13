@@ -13,17 +13,19 @@ def preprocess_image(image_path, target_size=(64, 64)):
     if img_rgb is None:
         return None # Image not found or couldn't be read
 
+    # 2. Get bounding box and crop
     cropped_sign = clean_mask_and_get_bounding_box(img_rgb, combined_mask)
     
-    # 2. Fallback if segmentation fails
+    # 3. Fallback if segmentation fails
     if cropped_sign is None:
         cropped_sign = img_rgb
         
-    # 3. Resize and convert to grayscale
+    # 4. Resize and convert to grayscale
     resized_sign = cv2.resize(cropped_sign, target_size)
     gray_sign = cv2.cvtColor(resized_sign, cv2.COLOR_RGB2GRAY)
     
-    # 4. Apply CLAHE for better contrast
+    # 5. Apply CLAHE for better contrast
+    # Divids into grids and applies histogram equalization to each grid individually
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     final_img = clahe.apply(gray_sign)
     
@@ -31,12 +33,8 @@ def preprocess_image(image_path, target_size=(64, 64)):
 
 
 # Initialize feature extractors once to save time and reuse the same instance
-try:
-    _surf_extractor = cv2.xfeatures2d.SURF_create()
-except (AttributeError, cv2.error):
-    _surf_extractor = cv2.SIFT_create()
+_sift_extractor = cv2.SIFT_create()
 
-_orb_extractor = cv2.ORB_create()
 
 def extract_lbph(img_gray):
     """Calculates Local Binary Pattern (LBP) texture histogram for a single image."""
@@ -57,9 +55,7 @@ def extract_lbph(img_gray):
     cv2.normalize(hist, hist)
     return hist.flatten()
 
-def extract_surf(img_gray):
-    """Extracts SURF/SIFT descriptors for a single image."""
-    kp, des = _surf_extractor.detectAndCompute(img_gray, None)
+def extract_sift(img_gray):
+    """Extracts SIFT descriptors for a single image."""
+    kp, des = _sift_extractor.detectAndCompute(img_gray, None)
     return des
-
-
