@@ -1,6 +1,10 @@
 # CV Traffic Sign Recognition
 
 A classical computer-vision pipeline for traffic sign detection and classification using color segmentation, preprocessing, and feature matching.
+---
+# Dataset
+
+https://www.kaggle.com/datasets/tuanai/traffic-signs-dataset
 
 ---
 
@@ -30,7 +34,7 @@ A classical computer-vision pipeline for traffic sign detection and classificati
 
 ---
 
-## 🧭 Pipeline Diagram (Mermaid)
+## 🧭 Pipeline Diagram
 
 ```mermaid
 flowchart TB
@@ -75,14 +79,7 @@ flowchart TB
 
 ## 📊 Metrics
 
-| Metric | Result |
-|--------|--------|
-| Accuracy | **80%** |
-
-> To recompute metrics on the dataset, run:
-> ```bash
-> python matcher.py
-> ```
+![Metrics](metrics/3_overall_summary_table.png)
 
 ---
 
